@@ -14,6 +14,7 @@
    [ring/ring-headers "0.1.1"]
    [ring/ring-anti-forgery "1.0.0"]
    [ring/ring-devel "1.4.0"]
-   [ring/ring-core "1.4.0"]]
+   [ring/ring-core "1.4.0"]
+   [environ "1.0.1"]]
   :source-paths
   ["src"])

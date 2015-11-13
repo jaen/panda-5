@@ -15,7 +15,7 @@
 (def pl-timezone (time/time-zone-for-id "Europe/Warsaw"))
 
 (defn local-now []
-  (time/to-time-zone (time/now) (time/time-zone-for-id "Europe/Warsaw")))
+  (time/to-time-zone (time/now) pl-timezone))
 
 (def base-path
   (str "https://ansi.lgbs.pl/api"))
@@ -71,14 +71,6 @@
     (when (= status 200)
       body)))
 
-;(defn get-carousels-to-start []
-;  (->> (api-list-carousels)
-;       (filter #(= (:state %) :stopped))))
-;
-;(defn get-carousels-to-stop []
-;  (->> (api-list-carousels)
-;       (filter #(= (:state %) :running))))
-
 (defn start-all! [carousels]
   (into {} (for [{:keys [id]} carousels]
              [id (api-start-carousel! id)])))
@@ -87,6 +79,7 @@
   (into {} (for [{:keys [id]} carousels]
              [id (api-stop-carousel! id)])))
 
+; hourse are in Europe/Warsaw timezone
 (def opening-hours-mapping {:weekday [12 21]
                             :weekend [10 23]})
 
@@ -95,16 +88,16 @@
         [opens-at closes-at] (cond
                                (time-predicates/weekday? date) (:weekday opening-hours-mapping)
                                (time-predicates/weekend? date) (:weekend opening-hours-mapping))]
-    (time/interval (time/plus at-midnight (time/hours opens-at))
-                   (time/plus at-midnight (time/hours closes-at)))))
+    (time/interval (time/from-time-zone (time/plus at-midnight (time/hours opens-at)) pl-timezone)
+                   (time/from-time-zone (time/plus at-midnight (time/hours closes-at)) pl-timezone))))
 
 (defn park-open?
-  ([]     (park-open? (local-now)))
+  ([]     (park-open? (time/now)))
   ([time] (time/within? (opening-hours time) time)))
 
 (defn process-amusement-park! []
   (let [{:keys [stopped running] :as carousels-by-state} (group-by :state (api-list-carousels))
-        time (local-now)
+        time (time/now)
         park-open? (park-open? time)
         carousels-modified (if park-open?
                          (start-all! stopped)

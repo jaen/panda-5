@@ -1,0 +1,1 @@
+web: java $JVM_OPTS -cp target/panda-5-1.0.0.jar clojure.main -m panda-5.core

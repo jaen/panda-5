@@ -132,7 +132,7 @@
   (let [port (or (some-> environ/env :port Integer.)
                  8080)]
     (reset! check-amusement-park-job (scheduling/schedule process-amusement-park! job-interval))
-    (reset! web-server (web/run-dmc handler {:port port}))))
+    (reset! web-server (web/run handler {:host "0.0.0.0" :port port}))))
 
 (defn stop! []
   (when (scheduling/stop @check-amusement-park-job)

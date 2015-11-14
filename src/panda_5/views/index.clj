@@ -8,10 +8,12 @@
 
   (def pl-timezone
     "Timezone for Warsaw, Poland."
+
     (time/time-zone-for-id "Europe/Warsaw"))
 
   (def check-time-formatter
     "Formats the datetime for check time."
+
     (time-format/with-zone (time-format/formatter "HH:mm:ss dd.MM.YYYY") pl-timezone))
 
 ;; Clojure, y u no zip : |
@@ -19,6 +21,7 @@
   (defn zip
     "Zips collections."
     [& colls]
+    
     (partition (count colls) (apply interleave colls)))
 
 ;; Index view.

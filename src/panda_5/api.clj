@@ -6,10 +6,12 @@
 
   (def api-key
     "The API access key."
+    
     "7c256dd0-4768-4f38-9ee9-b174ef417d53")
 
   (def client-opts
     "Common clj-http options."
+
     {:as :json
      :throw-exceptions false})
 
@@ -17,24 +19,29 @@
 
   (def base-path
     "Base path for API endpoints."
+
     "https://ansi.lgbs.pl/api")
 
   (def api-routes
     "A datastructure representing currently known API endpoints routes in bidi format."
+
     ["/" [[[:api-key "/"] [["carousels/" [["findAll"    :carousels/list]
                                           [[:id]         :carousels/get]
                                           [["run/" :id]  :carousels/start]
                                           [["stop/" :id] :carousels/stop]]]]]
           ["teams/"       [[[:team-key] :teams/get]]]]])
 
-  (defn api-path-for [key & {:as args}]
+  (defn api-path-for
     "Returns an API path for given route symbol and arguments."
+    [key & {:as args}]
+
     (str base-path (apply bidi/path-for api-routes key (flatten (seq (assoc args :api-key api-key))))))
 
 ;; API data mapping
 
   (def state-mapping
     "Maps carousel state string enum to keywords."
+
     {"STOPPED"   :stopped
      "RUNNING"   :running
      "BROKEN"    :broken
@@ -92,7 +99,7 @@
   (defn team-info 
     "Calls the amusement park API to get team info."
     []
-    
+
     (let [{:keys [status body]} (client/get (api-path-for :teams/get :team-key api-key) client-opts)]
       (when (= status 200)
         body)))

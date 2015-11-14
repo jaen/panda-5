@@ -10,18 +10,22 @@
 
   (defonce log
     ; "Keeps track of what happens on scheduled amusement park state updates."
+
     (atom (sorted-map)))
 
   (defonce check-amusement-park-job-handle
     ; "Atom which holds the handle for the park state checking."
+
     (atom nil))
 
   (def job-interval
     "Park state cheking job update interval."
+
     {:every [3 :minutes]})
 
   (defonce web-server-handle
     ; "Atom which holds the handle for the web server."
+    
     (atom nil))
 
 ;; Domain logic

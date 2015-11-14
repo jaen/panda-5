@@ -9,12 +9,14 @@
   (def opening-hours-mapping
     "A map that stores what hours the amusement park is open on given days.
      Hours are in Europe/Warsaw timezone"
+
     {:weekday [12 21]
      :weekend [10 23]})
 
 
   (def pl-timezone
     "Timezone for Warsaw, Poland."
+    
     (time/time-zone-for-id "Europe/Warsaw"))
 
 ;; Opening hours logic.
@@ -56,7 +58,7 @@
   (defn process-amusement-park-state!
     "Processes the current state of the amusement park and acts accordingly."
     []
-    
+
     (let [{:keys [stopped running] :as carousels-by-state} (group-by :state (api/list-carousels))
           time (time/now)
           park-open? (park-open? time)

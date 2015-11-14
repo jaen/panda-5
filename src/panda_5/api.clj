@@ -40,12 +40,16 @@
      "BROKEN"    :broken
      "DESTROYED" :destroyed})
 
-  (defn api->carousel-state [state]
+  (defn api->carousel-state
     "Return a carousel state symbol for given string."
+    [state]
+
     (state-mapping state))
 
-  (defn api->carousel [api-repr]
+  (defn api->carousel
     "Returns the internal representation of the carousel for given external representation."
+    [api-repr]
+
     {:id    (long (:id api-repr))
      :name  (:name api-repr)
      :state (api->carousel-state (:carouselState api-repr))
@@ -53,25 +57,42 @@
 
 ;; API data fetching functionality
 
-  (defn list-carousels []
+  (defn list-carousels 
+    "Calls the amusement park API to list info about all the carousels."
+    []
+
     (let [{:keys [status body]} (client/get (api-path-for :carousels/list) client-opts)]
       (when (= 200 status)
         (map api->carousel body))))
 
-  (defn get-carousel [id]
+  (defn get-carousel 
+    "Calls the amusement park API to get info about a single carousel."
+    [id]
+
     (let [{:keys [status body]} (client/get (api-path-for :carousels/get :id id) client-opts)]
       (when (= 200 status)
         (api->carousel body))))
 
-  (defn start-carousel! [id]
+  (defn start-carousel!
+    "Calls the amusement park API to start a single carousel by given `id`.
+     Observe how PUT instead of POST is used."
+    [id]
+
     (let [{:keys [status]} (client/put (api-path-for :carousels/start :id id) client-opts)]
       (= status 200)))
 
-  (defn stop-carousel! [id]
+  (defn stop-carousel!
+    "Calls the amusement park API to stop a single carousel by given `id`.
+     Observe how PUT instead of POST is used."
+    [id]
+
     (let [{:keys [status]} (client/put (api-path-for :carousels/stop :id id) client-opts)]
       (= status 200)))
 
-  (defn team-info []
+  (defn team-info 
+    "Calls the amusement park API to get team info."
+    []
+    
     (let [{:keys [status body]} (client/get (api-path-for :teams/get :team-key api-key) client-opts)]
       (when (= status 200)
         body)))

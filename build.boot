@@ -15,7 +15,8 @@
                  [ring/ring-anti-forgery "1.0.0"]
                  [ring/ring-devel "1.4.0"]
                  [ring/ring-core "1.4.0"]
-                 [environ "1.0.1"]]
+                 [environ "1.0.1"]
+                 [funcool/cuerdas "0.6.0"]]
   :main-class 'panda-5.core)
 
 (defn- generate-lein-project-file! [& {:keys [keep-project] :or {:keep-project true}}]

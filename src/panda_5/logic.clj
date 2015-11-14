@@ -19,20 +19,26 @@
 
 ;; Opening hours logic.
 
-  (defn start-all! [carousels]
+  (defn start-all!
     "Sends a start request for all carousels in `carousels` seq.
      Returns a map form carousel id to call success."
+    [carousels]
+
     (into {} (for [{:keys [id]} carousels]
                [id (api/start-carousel! id)])))
 
-  (defn stop-all! [carousels]
+  (defn stop-all!
     "Sends a stop request for all carousels in `carousels` seq.
      Returns a map form carousel id to call success."
+    [carousels]
+
     (into {} (for [{:keys [id]} carousels]
                [id (api/stop-carousel! id)])))
 
-  (defn opening-hours [date]
+  (defn opening-hours
     "Returns a clj-time interval of opening hours for a given date."
+    [date]
+
     (let [at-midnight          (time/floor date time/day)
           [opens-at closes-at] (cond
                                  (time-predicates/weekday? date) (:weekday opening-hours-mapping)
@@ -47,8 +53,10 @@
 
 ;; Park checking logic.
 
-  (defn process-amusement-park-state! []
+  (defn process-amusement-park-state!
     "Processes the current state of the amusement park and acts accordingly."
+    []
+    
     (let [{:keys [stopped running] :as carousels-by-state} (group-by :state (api/list-carousels))
           time (time/now)
           park-open? (park-open? time)

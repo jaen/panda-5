@@ -18,7 +18,7 @@
 
   (def job-interval
     "Park state cheking job update interval."
-    {:every [10 :seconds]})
+    {:every [3 :minutes]})
 
   (defonce web-server-handle
     ; "Atom which holds the handle for the web server."

@@ -1,11 +1,12 @@
 (ns panda-5.core
-    (:require [immutant.web :as web]
-              [immutant.scheduling :as scheduling]
-              [environ.core :as environ]
+  (:require [immutant.web :as web]
+            [immutant.scheduling :as scheduling]
+            [environ.core :as environ]
+            [clj-time.core :as time]
 
-              [panda-5.logic :as logic]
-              [panda-5.views.index :as index-view]
-              [panda-5.api :as api]))
+            [panda-5.logic :as logic]
+            [panda-5.views.index :as index-view]
+            [panda-5.api :as api]))
 
 ;; Defines.
 
@@ -20,7 +21,7 @@
     (atom nil))
 
   (def job-interval
-    "Park state cheking job update interval."
+    "Park state checking job update interval."
 
     {:every [3 :minutes]})
 
@@ -36,7 +37,8 @@
     [request]
 
     (if (= (:path-info request) "/")
-      (let [[_ last-status] (last @log)
+      (let [start-time (time/now)
+            [_ last-status] (last @log)
             team-info (api/team-info)
             fresh-carousels (future (let [carousels (api/list-carousels)]
                                       (group-by :state carousels)))
@@ -46,9 +48,10 @@
                                      :carousels fresh-carousels
                                      :historical-updates (vals @log)
                                      :team-info team-info))]
-      {:status 200
-       :headers {"Content-Type" "text/html"}
-       :body body})
+        {:status  200
+         :headers {"Content-Type"   "text/html"
+                   "X-Generated-In" (time/in-msecs (time/interval start-time (time/now)))}
+         :body    body})
       {:status 404
        :headers {"Content-Type" "text/plain"}
        :body "Go away."}))

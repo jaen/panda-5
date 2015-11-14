@@ -1,10 +1,11 @@
 (ns panda-5.core
-  (:require [immutant.web :as web]
-            [immutant.scheduling :as scheduling]
-            [environ.core :as environ]
+    (:require [immutant.web :as web]
+              [immutant.scheduling :as scheduling]
+              [environ.core :as environ]
 
-            [panda-5.logic :as logic]
-            [panda-5.views.index :as index-view]))
+              [panda-5.logic :as logic]
+              [panda-5.views.index :as index-view]
+              [panda-5.api :as api]))
 
 ;; Defines.
 
@@ -25,7 +26,7 @@
 
   (defonce web-server-handle
     ; "Atom which holds the handle for the web server."
-    
+
     (atom nil))
 
 ;; Domain logic
@@ -34,11 +35,23 @@
     "Simple Ring handler that shows the last check status value."
     [request]
 
-    (let [[_ last-status] (last @log)
-          body (index-view/index last-status)]
-    {:status 200
-     :headers {"Content-Type" "text/html"}
-     :body body}))
+    (if (= (:path-info request) "/")
+      (let [[_ last-status] (last @log)
+            team-info (api/team-info)
+            fresh-carousels (future (let [carousels (api/list-carousels)]
+                                      (group-by :state carousels)))
+            body (index-view/index (assoc last-status
+                                     :park-open? (:park-open? last-status)
+                                     :check-time (:check-time last-status)
+                                     :carousels fresh-carousels
+                                     :historical-updates (vals @log)
+                                     :team-info team-info))]
+      {:status 200
+       :headers {"Content-Type" "text/html"}
+       :body body})
+      {:status 404
+       :headers {"Content-Type" "text/plain"}
+       :body "Go away."}))
 
   (defn check-amusement-park-job
     "The handler for the scheduled job of checking the amusement park state.
@@ -55,7 +68,7 @@
     (let [port (or (some-> environ/env :port Integer.)
                    8080)]
       (reset! check-amusement-park-job-handle (scheduling/schedule check-amusement-park-job job-interval))
-      (reset! web-server-handle (web/run-dmc handler {:host "0.0.0.0" :port port}))))
+      (reset! web-server-handle (web/run handler {:host "0.0.0.0" :port port}))))
 
   (defn stop!
     "Stops the application."

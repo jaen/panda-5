@@ -1,6 +1,6 @@
 (defproject
-  boot-project
-  "0.0.0-SNAPSHOT"
+  panda-5
+  "1.0.0"
   :dependencies
   [[org.clojure/clojure "1.7.0" :scope "provided"]
    [bidi "1.21.1" :exclusions [org.clojure/clojurescript]]
@@ -16,6 +16,7 @@
    [ring/ring-devel "1.4.0"]
    [ring/ring-core "1.4.0"]
    [environ "1.0.1"]
-   [funcool/cuerdas "0.6.0"]]
+   [funcool/cuerdas "0.6.0"]
+   [boot-immutant "0.5.0" :scope "test"]]
   :source-paths
   ["src"])

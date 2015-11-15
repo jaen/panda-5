@@ -118,19 +118,19 @@
                   (check-results "fresh" @fresh-carousels-by-state)]
                 [:hr]
                 [:div
-                  [:h2 "Last 42 historical check results:"
-                    (for [{:keys [check-time park-open?] carousels-by-state :carousels} (take 42 (reverse (sort-by :check-time historical-updates)))
-                          :let [collapsible-id (str "collapse-historical-check-results-" (time-format/unparse check-time-as-id-formatter check-time))]]
-                      [:div
-                        [:h3.collapsed {:data-toggle "collapse" :data-target (str "#" collapsible-id) :style "cursor: pointer;"}
-                          [:span.glyphicon.glyphicon-menu-right.text-muted {:style "font-size: 0.8em;"}]
-                          " "
-                          (time-format/unparse check-time-formatter check-time)
-                          [:span.small
-                            [:span.text-muted " ("]
-                            (if park-open?
-                              [:b.text-success "OPEN"]
-                              [:b.text-danger "CLOSED"])
-                            [:span.text-muted ")"]]]
-                        [:div.historical-check-results.indented.collapse {:id collapsible-id}
-                          (check-results collapsible-id carousels-by-state)]])]]]]])))
+                  [:h2 "Last 42 historical check results:"]
+                  (for [{:keys [check-time park-open?] carousels-by-state :carousels} (take 42 (reverse (sort-by :check-time historical-updates)))
+                        :let [collapsible-id (str "collapse-historical-check-results-" (time-format/unparse check-time-as-id-formatter check-time))]]
+                    [:div
+                      [:h3.collapsed {:data-toggle "collapse" :data-target (str "#" collapsible-id) :style "cursor: pointer;"}
+                        [:span.glyphicon.glyphicon-menu-right.text-muted {:style "font-size: 0.8em;"}]
+                        " "
+                        (time-format/unparse check-time-formatter check-time)
+                        [:span.small
+                          [:span.text-muted " ("]
+                          (if park-open?
+                            [:b.text-success "OPEN"]
+                            [:b.text-danger "CLOSED"])
+                          [:span.text-muted ")"]]]
+                      [:div.historical-check-results.indented.collapse {:id collapsible-id}
+                        (check-results collapsible-id carousels-by-state)]])]]]])))

@@ -16,10 +16,17 @@
                  [ring/ring-devel "1.4.0"]
                  [ring/ring-core "1.4.0"]
                  [environ "1.0.1"]
-                 [funcool/cuerdas "0.6.0"]]
+                 [funcool/cuerdas "0.6.0"]
+
+                 [boot-immutant "0.5.0" :scope "test"]]
   :main-class 'panda-5.core)
 
-(defn- generate-lein-project-file! [& {:keys [keep-project] :or {:keep-project true}}]
+(require '[boot.immutant :as immutant])
+
+(defn- generate-lein-project-file!
+  "Generates leiningen project file."
+  [& {:keys [keep-project] :or {:keep-project true}}]
+
   (require 'clojure.java.io)
   (let [pfile ((resolve 'clojure.java.io/file) "project.clj")
         ; Only works when pom options are set using task-options!
@@ -37,6 +44,11 @@
       (if-not keep-project (.deleteOnExit pfile))
       (spit pfile proj)))
 
+(task-options! aot {:namespace #{(get-env :main-class)}}
+               jar {:main (get-env :main-class)}
+               pom {:project 'panda-5
+                    :version "1.0.0"})
+
 (deftask lein-generate
   "Generate a leiningen `project.clj` file.
    This task generates a leiningen `project.clj` file based on the boot
@@ -45,23 +57,38 @@
    to the generated `project.clj` file by specifying a `:lein` key in the boot
    environment whose value is a map of keys-value pairs to add to `project.clj`."
  []
+
  (generate-lein-project-file! :keep-project true))
 
 (deftask dev
   "Runs development"
   []
+
   (lein-generate)
   (repl))
 
 (deftask build
   "Builds an uberjar of this project that can be run with java -jar"
   []
+
   (comp
-   (aot :namespace #{(get-env :main-class)})
-   (pom :project 'panda-5
-        :version "1.0.0")
+   (aot)
+   (pom)
    (uber)
-   (jar :main (get-env :main-class))))
+   (jar)))
+
+(deftask build-immutant
+  "Build a WidFly-compatible war."
+  []
+
+  (set-env! :resource-paths #{"src"})
+  (comp
+    (immutant/immutant-war :context-path "/"
+                           :init-fn 'panda-5.core/start!
+                           :name "ROOT"
+                           :nrepl-host "0.0.0.0"
+                           :nrepl-port 12132
+                           :nrepl-start true)))-
 
 (defn start! []
   (require 'panda-5.core)

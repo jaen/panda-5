@@ -50,7 +50,7 @@
                                      :team-info team-info))]
         {:status  200
          :headers {"Content-Type"   "text/html"
-                   "X-Generated-In" (time/in-msecs (time/interval start-time (time/now)))}
+                   "X-Generated-In" (time/in-millis (time/interval start-time (time/now)))}
          :body    body})
       {:status 404
        :headers {"Content-Type" "text/plain"}

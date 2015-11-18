@@ -67,12 +67,29 @@
               [:h4.text-muted
                 "No carousels are currently " state "."]])]]))
 
+  (defn display-error? [error]
+    [:div.jumbotron.text-center {:style "background:none;"}
+      [:h4.text-muted
+        (condp = error
+          :request-error
+            "A request error occured."
+          :server-error
+            "A server error occured."
+          :timeout
+            "Amusement park didn't reply in time."
+          :unknown-error
+            "An unknown error occured.")]])
+
   (defn check-results
     [collapsible-id carousels]
 
-    (for [[state colour]  (zip [:running :stopped :broken :destroyed]
-                               ["success" "info" "warning" "danger"])]
-      (check-results-for state colour collapsible-id (get carousels state))))
+    (cond
+      (seq? carousels)
+        (for [[state colour]  (zip [:running :stopped :broken :destroyed]
+                                   ["success" "info" "warning" "danger"])]
+          (check-results-for state colour collapsible-id (get carousels state)))
+      :else
+        (display-error? carousels)))
 
   (defn index
     "Generates HTML for the index view."
@@ -107,11 +124,15 @@
                     "Last state update at: " (time-format/unparse check-time-formatter check-time)]]
                 [:hr]
                   [:h2.text-center
-                    "The amusement park is now " (if park-open?
-                                                   [:b.text-success "OPEN"]
-                                                   [:b.text-danger "CLOSED"]) "."]
+                    "The amusement park is now " (if (nil? park-open?)
+                                                   [:b.text-muted "UNKNOWN"]
+                                                   (if park-open?
+                                                     [:b.text-success "OPEN"]
+                                                     [:b.text-danger "CLOSED"])) "."]
                   [:h2.text-center
-                    "Current balance: $" (:points team-info) "."]
+                    "Current balance: " (if-let [points (:points team-info)]
+                                          (str "$" points)
+                                          [:b.text-muted "UNKNOWN"]) "."]
                 [:hr]
                 [:div
                   [:h2 "Fresh check results:"]
@@ -119,7 +140,7 @@
                 [:hr]
                 [:div
                   [:h2 "Last 42 historical check results:"]
-                  (for [{:keys [check-time park-open?] carousels-by-state :carousels} (take 42 (reverse (sort-by :check-time historical-updates)))
+                  (for [{:keys [check-time park-open? error?] carousels-by-state :carousels} (take 42 (reverse (sort-by :check-time historical-updates)))
                         :let [collapsible-id (str "collapse-historical-check-results-" (time-format/unparse check-time-as-id-formatter check-time))]]
                     [:div
                       [:h3.collapsed {:data-toggle "collapse" :data-target (str "#" collapsible-id) :style "cursor: pointer;"}
@@ -128,9 +149,11 @@
                         (time-format/unparse check-time-formatter check-time)
                         [:span.small
                           [:span.text-muted " ("]
-                          (if park-open?
-                            [:b.text-success "OPEN"]
-                            [:b.text-danger "CLOSED"])
+                          (if error?
+                            [:b.text-muted "UNKNOWN"]
+                            (if park-open?
+                              [:b.text-success "OPEN"]
+                              [:b.text-danger "CLOSED"]))
                           [:span.text-muted ")"]]]
                       [:div.historical-check-results.indented.collapse {:id collapsible-id}
-                        (check-results collapsible-id carousels-by-state)]])]]]])))
+                        (check-results collapsible-id (or carousels-by-state error?))]])]]]])))

@@ -1,12 +1,13 @@
 (ns panda-5.logic
   (require [clj-time.core :as time]
            [clj-time.predicates :as time-predicates]
+           [clojure.core.match :refer [match]]
 
            [panda-5.api :as api]))
 
 ;; Defines.
 
-  (def opening-hours-mapping
+  (def OPENING-HOURS-MAPPING
     "A map that stores what hours the amusement park is open on given days.
      Hours are in Europe/Warsaw timezone"
 
@@ -14,7 +15,7 @@
      :weekend [10 23]})
 
 
-  (def pl-timezone
+  (def PL-TIMEZONE
     "Timezone for Warsaw, Poland."
     
     (time/time-zone-for-id "Europe/Warsaw"))
@@ -43,10 +44,10 @@
 
     (let [at-midnight          (time/floor date time/day)
           [opens-at closes-at] (cond
-                                 (time-predicates/weekday? date) (:weekday opening-hours-mapping)
-                                 (time-predicates/weekend? date) (:weekend opening-hours-mapping))]
-      (time/interval (time/from-time-zone (time/plus at-midnight (time/hours opens-at)) pl-timezone)
-                     (time/from-time-zone (time/plus at-midnight (time/hours closes-at)) pl-timezone))))
+                                 (time-predicates/weekday? date) (:weekday OPENING-HOURS-MAPPING)
+                                 (time-predicates/weekend? date) (:weekend OPENING-HOURS-MAPPING))]
+      (time/interval (time/from-time-zone (time/plus at-midnight (time/hours opens-at)) PL-TIMEZONE)
+                     (time/from-time-zone (time/plus at-midnight (time/hours closes-at)) PL-TIMEZONE))))
 
   (defn park-open?
     "Tests if the amusement park is open. If date is ommited, then current datetime is assumed."
@@ -59,13 +60,19 @@
     "Processes the current state of the amusement park and acts accordingly."
     []
 
-    (let [{:keys [stopped running] :as carousels-by-state} (group-by :state (api/list-carousels))
-          time (time/now)
-          park-open? (park-open? time)
-          carousels-modified (if park-open?
-                               (start-all! stopped)
-                               (stop-all! running))]
-      (assoc {:check-time time
-              :park-open? park-open?
-              :carousels carousels-by-state}
-        (if park-open? :started :stopped) carousels-modified)))
+    (match (api/list-carousels)
+      (carousels :guard api/valid?)
+        (let [{:keys [stopped running] :as carousels-by-state} (group-by :state carousels)
+              time (time/now)
+              park-open? (park-open? time)
+              carousels-modified (if park-open?
+                                   (start-all! stopped)
+                                   (stop-all! running))]
+          (assoc {:check-time time
+                  :park-open? park-open?
+                  :carousels  carousels-by-state}
+            (if park-open? :started :stopped) carousels-modified))
+
+      error
+        {:check-time (time/now)
+         :error?     error}))

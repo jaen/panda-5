@@ -17,6 +17,7 @@
    [ring/ring-core "1.4.0"]
    [environ "1.0.1"]
    [funcool/cuerdas "0.6.0"]
+   [org.clojure/core.match "0.3.0-alpha4"]
    [boot-immutant "0.5.0" :scope "test"]]
   :source-paths
   ["src"])

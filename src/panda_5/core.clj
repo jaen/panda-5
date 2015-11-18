@@ -3,6 +3,7 @@
             [immutant.scheduling :as scheduling]
             [environ.core :as environ]
             [clj-time.core :as time]
+            [cljs.core.match :refer [match]]
 
             [panda-5.logic :as logic]
             [panda-5.views.index :as index-view]
@@ -20,7 +21,7 @@
 
     (atom nil))
 
-  (def job-interval
+  (def JOB-INTERVAL
     "Park state checking job update interval."
 
     {:every [3 :minutes]})
@@ -41,7 +42,9 @@
             [_ last-status] (last @log)
             team-info (api/team-info)
             fresh-carousels (future (let [carousels (api/list-carousels)]
-                                      (group-by :state carousels)))
+                                      (if (api/valid? carousels)
+                                        (group-by :state carousels)
+                                        carousels)))
             body (index-view/index (assoc last-status
                                      :park-open? (:park-open? last-status)
                                      :check-time (:check-time last-status)
@@ -70,7 +73,7 @@
 
     (let [port (or (some-> environ/env :port Integer.)
                    8080)]
-      (reset! check-amusement-park-job-handle (scheduling/schedule check-amusement-park-job job-interval))
+      (reset! check-amusement-park-job-handle (scheduling/schedule check-amusement-park-job JOB-INTERVAL))
       (reset! web-server-handle (web/run handler {:host "0.0.0.0" :port port}))))
 
   (defn stop!

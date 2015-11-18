@@ -112,9 +112,9 @@
     "Test whether response is valid."
     [response]
 
-    (map? response))
+    (not (keyword? response)))
 
-  (defn process-response [[code body :as response] & [{:keys [process-fn] :as options}]]
+  (defn process-response [[code {:keys [body] :as response}] & [{:keys [process-fn] :as options}]]
     (cond
       (success? code)               (if (and (valid? response) process-fn)
                                       (process-fn body)

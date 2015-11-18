@@ -84,7 +84,7 @@
     [collapsible-id carousels]
 
     (cond
-      (seq? carousels)
+      (map? carousels)
         (for [[state colour]  (zip [:running :stopped :broken :destroyed]
                                    ["success" "info" "warning" "danger"])]
           (check-results-for state colour collapsible-id (get carousels state)))

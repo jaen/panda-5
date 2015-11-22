@@ -140,8 +140,9 @@
                 [:hr]
                 [:div
                   [:h2 "Last 42 historical check results:"]
-                  (for [{:keys [check-time park-open? error?] carousels-by-state :carousels} (take 42 (reverse (sort-by :check-time historical-updates)))
-                        :let [collapsible-id (str "collapse-historical-check-results-" (time-format/unparse check-time-as-id-formatter check-time))]]
+                  (for [{:keys [check-time park-open? error? repair-requests] carousels-by-state :carousels} (take 42 (reverse (sort-by :check-time historical-updates)))
+                        :let [collapsible-id (str "collapse-historical-check-results-" (time-format/unparse check-time-as-id-formatter check-time))
+                              _ (println "TOP KEK: " repair-requests)]]
                     [:div
                       [:h3.collapsed {:data-toggle "collapse" :data-target (str "#" collapsible-id) :style "cursor: pointer;"}
                         [:span.glyphicon.glyphicon-menu-right.text-muted {:style "font-size: 0.8em;"}]
@@ -156,4 +157,24 @@
                               [:b.text-danger "CLOSED"]))
                           [:span.text-muted ")"]]]
                       [:div.historical-check-results.indented.collapse {:id collapsible-id}
-                        (check-results collapsible-id (or carousels-by-state error?))]])]]]])))
+                        (check-results collapsible-id (or carousels-by-state error?))
+                        (when-not (empty? repair-requests)
+                          (let [repair-requests-collapsible-id (str collapsible-id "-repair-requests")]
+                            [:div.repair-requests
+                              [:h4 {:data-toggle "collapse" :data-target (str "#" repair-requests-collapsible-id) :style "cursor: pointer;"}
+                                [:span.glyphicon.glyphicon-menu-right.text-muted {:style "font-size: 0.8em;"}]
+                                " Repair requests issued:"]
+                              [:div.repair-requests-list.indented.collapse.in {:id repair-requests-collapsible-id}
+                                [:table.table.table-striped.table-hover
+                                  [:thead
+                                    [:th "Carousel id"]
+                                    [:th "Diagnostic number"]
+                                    [:th "Type"]
+                                    [:th "Scheduled time"]]
+                                  [:tbody
+                                    (for [{:keys [carousel-id diagnostic-number type scheduled-time]} (apply concat (vals repair-requests))]
+                                      [:tr
+                                        [:td carousel-id]
+                                        [:td diagnostic-number]
+                                        [:td (name type)]
+                                        [:td (time-format/unparse check-time-formatter scheduled-time)]])]]]]))]])]]]])))

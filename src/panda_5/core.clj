@@ -1,13 +1,18 @@
 (ns panda-5.core
-  (:require [immutant.web :as web]
+  (:require [panda-5.logic :as logic]
+            [panda-5.views.index :as index-view]
+            [panda-5.api.core :as api]
+            [panda-5.persistence.migrations :as migrations]
+            [panda-5.persistence.core :as persistence]
+
+            [immutant.web :as web]
             [immutant.scheduling :as scheduling]
             [environ.core :as environ]
             [clj-time.core :as time]
             [cljs.core.match :refer [match]]
-
-            [panda-5.logic :as logic]
-            [panda-5.views.index :as index-view]
-            [panda-5.api :as api]))
+            [taoensso.timbre :as log]
+            [taoensso.timbre.appenders.core :as appenders]
+            [schema.core :as s]))
 
 ;; Defines.
 
@@ -24,12 +29,20 @@
   (def JOB-INTERVAL
     "Park state checking job update interval."
 
-    {:every [3 :minutes]})
+    {:every [10 :seconds] #_[3 :minutes]})
 
   (defonce web-server-handle
     ; "Atom which holds the handle for the web server."
 
     (atom nil))
+
+;; Global setup
+
+  (log/merge-config!
+    {:appenders {:println {:enabled? false}
+                 :spit (appenders/spit-appender {:fname "./logs/timbre.log"})}})
+
+  (s/set-fn-validation! true)
 
 ;; Domain logic
 
@@ -43,7 +56,7 @@
             team-info (api/team-info)
             fresh-carousels (future (let [carousels (api/list-carousels)]
                                       (if (api/valid? carousels)
-                                        (group-by :state carousels)
+                                        (group-by :carousel-state carousels)
                                         carousels)))
             body (index-view/index (assoc last-status
                                      :park-open? (:park-open? last-status)
@@ -71,8 +84,30 @@
     "Starts the application."
     []
 
-    (let [port (or (some-> environ/env :port Integer.)
-                   8080)]
+    (let [env  (or (some-> environ/env :env keyword)
+                   :development)
+          port (or (some-> environ/env :port Integer.)
+                   8080)
+          db-host (or (:db-host environ/env)
+                      "localhost")
+          db-port (or (some-> environ/env :db-port Integer.)
+                      5432)
+          db-database (or (:db-database environ/env)
+                          "panda5_dev")
+          db-user (or (:db-user environ/env)
+                      "panda5")
+          db-password (or (:db-password environ/env)
+                          "panda5")
+          db-params {:host db-host
+                     :port-number db-port
+                     :database db-database
+                     :username db-user
+                     :password db-password}]
+      (log/info "Starting the application with: " {:env env :port port :db db-params})
+      (logic/set-environment! env)
+      (persistence/set-data-source!
+        (persistence/make-hikari-data-source db-params))
+      (migrations/ensure-database!)
       (reset! check-amusement-park-job-handle (scheduling/schedule check-amusement-park-job JOB-INTERVAL))
       (reset! web-server-handle (web/run handler {:host "0.0.0.0" :port port}))))
 

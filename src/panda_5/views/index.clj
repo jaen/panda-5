@@ -101,7 +101,7 @@
           [:head
             [:link {:rel "stylesheet"
                     :type "text/css"
-                    :href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"}]
+                    :href "/assets/stylesheets/bootstrap.css"}]
             [:style ".collapsed .glyphicon.glyphicon-menu-right:before {
                        content: \"\\e259\";
                       }
@@ -113,9 +113,9 @@
                        margin-left: 1.2em;
                       }"]
             [:script {:type "text/javascript"
-                      :src "https://code.jquery.com/jquery-2.1.4.min.js"}]
+                      :src "/assets/javascripts/jquery.js"}]
             [:script {:type "text/javascript"
-                      :src "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"}]]
+                      :src "/assets/javascripts/bootstrap.js"}]]
             [:body
               [:div.container
                 [:h1
@@ -130,7 +130,7 @@
                                                      [:b.text-success "OPEN"]
                                                      [:b.text-danger "CLOSED"])) "."]
                   [:h2.text-center
-                    "Current balance: " (if-let [points (:points team-info)]
+                    "Current balance: " (if-let [points (:points @team-info)]
                                           (str "$" points)
                                           [:b.text-muted "UNKNOWN"]) "."]
                 [:hr]
@@ -141,8 +141,7 @@
                 [:div
                   [:h2 "Last 42 historical check results:"]
                   (for [{:keys [check-time park-open? error? repair-requests] carousels-by-state :carousels} (take 42 (reverse (sort-by :check-time historical-updates)))
-                        :let [collapsible-id (str "collapse-historical-check-results-" (time-format/unparse check-time-as-id-formatter check-time))
-                              _ (println "TOP KEK: " repair-requests)]]
+                        :let [collapsible-id (str "collapse-historical-check-results-" (time-format/unparse check-time-as-id-formatter check-time))]]
                     [:div
                       [:h3.collapsed {:data-toggle "collapse" :data-target (str "#" collapsible-id) :style "cursor: pointer;"}
                         [:span.glyphicon.glyphicon-menu-right.text-muted {:style "font-size: 0.8em;"}]
@@ -172,7 +171,7 @@
                                     [:th "Type"]
                                     [:th "Scheduled time"]]
                                   [:tbody
-                                    (for [{:keys [carousel-id diagnostic-number type scheduled-time]} (apply concat (vals repair-requests))]
+                                    (for [{:keys [carousel-id diagnostic-number type scheduled-time]} repair-requests]
                                       [:tr
                                         [:td carousel-id]
                                         [:td diagnostic-number]

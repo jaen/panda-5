@@ -1,4 +1,4 @@
-(ns migrations.jdbc.20151120201907-create-events-table
+(ns db.migrations.jdbc.20151120201907-create-events-table
   (:require [jdbc.core :as jdbc]))
 
 (defn up [db]

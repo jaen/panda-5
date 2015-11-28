@@ -1,8 +1,9 @@
-(ns seeds.jdbc.events
+(ns db.seeds.jdbc.events
   (:require [jdbc.core :as jdbc]
             [clj-uuid :as uuid]
             [panda-5.persistence.events :as events]
-            [clj-time.format :as time-format]))
+            [clj-time.format :as time-format]
+            [taoensso.timbre :as log]))
 
 (defn parse-time [time-str]
   (time-format/parse (time-format/formatters :date-time) time-str))
@@ -46,8 +47,10 @@
       (let [event {:uuid (uuid/v1)
                    :type :repair-requested
                    :payload payload}]
-        (if-not (events/get-event {:type :repair-requested
+        (if-not (events/get-event {:type    :repair-requested
                                    :payload {:diagnostic-number diagnostic-number
                                              :carousel-id carousel-id}})
-          (events/create-event! event)
-          (println "Already exists."))))))
+          (do
+            (events/create-event! event)
+            (log/info "Event " (:diagnostic-number event) " created."))
+          (log/info "Event " (:diagnostic-number event) " already exists."))))))

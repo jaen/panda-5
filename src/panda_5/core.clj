@@ -12,7 +12,12 @@
             [cljs.core.match :refer [match]]
             [taoensso.timbre :as log]
             [taoensso.timbre.appenders.core :as appenders]
-            [schema.core :as s]))
+            [schema.core :as s]
+            [ring.middleware.resource :as ring-resource]
+            [ring.middleware.content-type :as ring-content-type]
+            [com.palletops.log-config.timbre.tools-logging :as timbre-logging]
+            )
+  (:gen-class))
 
 ;; Defines.
 
@@ -29,10 +34,20 @@
   (def JOB-INTERVAL
     "Park state checking job update interval."
 
-    {:every [10 :seconds] #_[3 :minutes]})
+    {:every [2 :minutes]})
 
   (defonce web-server-handle
     ; "Atom which holds the handle for the web server."
+
+    (atom nil))
+
+  (defonce fresh-check-results
+    ; ""
+
+    (atom nil))
+
+  (defonce fresh-team-info
+    ; ""
 
     (atom nil))
 
@@ -40,30 +55,40 @@
 
   (log/merge-config!
     {:appenders {:println {:enabled? false}
-                 :spit (appenders/spit-appender {:fname "./logs/timbre.log"})}})
+                 :spit (appenders/spit-appender {:fname "./logs/timbre.log"})
+                 :jl (timbre-logging/make-tools-logging-appender {})
+                 }})
 
   (s/set-fn-validation! true)
 
-;; Domain logic
+;; Application logic
 
-  (defn handler
+  (defn make-carousel-check! []
+    (let [carousels (api/list-carousels)]
+      (reset! fresh-check-results
+              (if (api/valid? carousels)
+                (group-by :carousel-state carousels)
+                carousels))))
+
+  (defn make-team-check! []
+    (let [team-info (api/team-info)]
+      (reset! fresh-team-info team-info)))
+
+  (defn index-handler
     "Simple Ring handler that shows the last check status value."
     [request]
 
     (if (= (:path-info request) "/")
       (let [start-time (time/now)
+            _ (.start (Thread. make-carousel-check!))
+            _ (.start (Thread. make-team-check!))
             [_ last-status] (last @log)
-            team-info (api/team-info)
-            fresh-carousels (future (let [carousels (api/list-carousels)]
-                                      (if (api/valid? carousels)
-                                        (group-by :carousel-state carousels)
-                                        carousels)))
             body (index-view/index (assoc last-status
                                      :park-open? (:park-open? last-status)
                                      :check-time (:check-time last-status)
-                                     :carousels fresh-carousels
+                                     :carousels fresh-check-results
                                      :historical-updates (vals @log)
-                                     :team-info team-info))]
+                                     :team-info fresh-team-info))]
         {:status  200
          :headers {"Content-Type"   "text/html"
                    "X-Generated-In" (time/in-millis (time/interval start-time (time/now)))}
@@ -71,6 +96,14 @@
       {:status 404
        :headers {"Content-Type" "text/plain"}
        :body "Go away."}))
+
+  (def composed-handler
+    (-> index-handler
+        (ring-resource/wrap-resource "public")
+        (ring-content-type/wrap-content-type)))
+
+  (defn handler [request]
+    (composed-handler request))
 
   (defn check-amusement-park-job
     "The handler for the scheduled job of checking the amusement park state.
@@ -84,32 +117,57 @@
     "Starts the application."
     []
 
-    (let [env  (or (some-> environ/env :env keyword)
+    (let [env  (or (some-> environ/env :panda5-env keyword)
                    :development)
-          port (or (some-> environ/env :port Integer.)
+          port (or (some-> environ/env :panda5-port Integer.)
                    8080)
-          db-host (or (:db-host environ/env)
+          ssl-port (or (some-> environ/env :panda5-ssl-port Integer.)
+                       8443)
+          db-host (or (:panda5-db-host environ/env)
                       "localhost")
-          db-port (or (some-> environ/env :db-port Integer.)
+          db-port (or (some-> environ/env :panda5-db-port Integer.)
                       5432)
-          db-database (or (:db-database environ/env)
+          db-database (or (:panda5-db-database environ/env)
                           "panda5_dev")
-          db-user (or (:db-user environ/env)
+          db-user (or (:panda5-db-user environ/env)
                       "panda5")
-          db-password (or (:db-password environ/env)
+          db-password (or (:panda5-db-password environ/env)
                           "panda5")
           db-params {:host db-host
-                     :port-number db-port
+                     :port db-port
                      :database db-database
                      :username db-user
-                     :password db-password}]
-      (log/info "Starting the application with: " {:env env :port port :db db-params})
+                     :password db-password}
+          mock-api? (when-let [value (:panda5-mock-requests environ/env)]
+                      (= value "true"))
+          immutant-params (when (= env :development)
+                            {:host "0.0.0.0"
+                             :port port
+                             :ssl-port ssl-port
+                             :http2? true
+                             :keystore "certs/server.keystore"
+                             :key-password "panda5"
+                             :truststore "certs/server.truststore"
+                             :trust-password "panda5"})]
+      (log/info "Starting the application with: " {:env env
+                                                   :port port
+                                                   :db db-params
+                                                   :mock-api? mock-api?})
       (logic/set-environment! env)
+      (when mock-api?
+        (api/mock-api! true))
       (persistence/set-data-source!
         (persistence/make-hikari-data-source db-params))
       (migrations/ensure-database!)
-      (reset! check-amusement-park-job-handle (scheduling/schedule check-amusement-park-job JOB-INTERVAL))
-      (reset! web-server-handle (web/run handler {:host "0.0.0.0" :port port}))))
+      (log/info "Pre-querying carousel status.")
+      (make-carousel-check!)
+      (log/info "Pre-querying team info.")
+      (make-team-check!)
+      (reset! check-amusement-park-job-handle (scheduling/schedule check-amusement-park-job (merge JOB-INTERVAL
+                                                                                                   {:singleton true})))
+      (reset! web-server-handle (condp = env
+                                  :production (web/run handler (or immutant-params {}))
+                                  (web/run-dmc handler immutant-params)))))
 
   (defn stop!
     "Stops the application."

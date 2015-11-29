@@ -36,7 +36,11 @@
   {:diagnostic-number 280720,
    :type :mechanical,
    :carousel-id 109,
-   :scheduled-time (parse-time "2015-11-22T00:01:00.000+01:00")}])
+   :scheduled-time (parse-time "2015-11-22T00:01:00.000+01:00")}
+   {:diagnostic-number 280720
+    :type :mechanical
+    :carousel-id 109
+    :scheduled-time (parse-time "2015-11-21T00:01:00.000+01:00")}])
 
 (defn run [target & args]
   (let [db-spec (get-in target [:db :url])]

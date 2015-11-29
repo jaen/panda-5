@@ -1,5 +1,6 @@
 (ns panda-5.core
-  (:require [panda-5.logic :as logic]
+  (:require [panda-5.utils.transit]
+            [panda-5.logic :as logic]
             [panda-5.views.index :as index-view]
             [panda-5.api.core :as api]
             [panda-5.persistence.migrations :as migrations]
@@ -15,8 +16,7 @@
             [schema.core :as s]
             [ring.middleware.resource :as ring-resource]
             [ring.middleware.content-type :as ring-content-type]
-            [com.palletops.log-config.timbre.tools-logging :as timbre-logging]
-            )
+            [com.palletops.log-config.timbre.tools-logging :as timbre-logging])
   (:gen-class))
 
 ;; Defines.
@@ -163,8 +163,9 @@
       (make-carousel-check!)
       (log/info "Pre-querying team info.")
       (make-team-check!)
-      (reset! check-amusement-park-job-handle (scheduling/schedule check-amusement-park-job (merge JOB-INTERVAL
-                                                                                                   {:singleton true})))
+      (reset! check-amusement-park-job-handle (scheduling/schedule check-amusement-park-job
+                                                                   (merge JOB-INTERVAL
+                                                                          {:singleton true})))
       (reset! web-server-handle (condp = env
                                   :production (web/run handler (or immutant-params {}))
                                   (web/run-dmc handler immutant-params)))))

@@ -5,7 +5,8 @@
 
             [hikari-cp.core :as hikari]
             [jdbc.core :as jdbc]
-            [clj-time.format :as time-format])
+            [clj-time.format :as time-format]
+            [panda-5.utils.time :as time-utils])
   (:import [org.joda.time DateTime]))
 
 (defn make-hikari-data-source [{:keys [host port database username password]}]
@@ -46,20 +47,10 @@
      ~@body
      (set-data-source! old-data-source)))
 
-(def db-date-time-formatter
-  (time-format/formatters :date-time))
-
-(defn date-time->db-json [datetime]
-  (time-format/unparse db-date-time-formatter datetime))
-
-(defn db-json->date-time [datetime-str]
-  (time-format/parse db-date-time-formatter datetime-str))
-
-
 (defn db->map [what schema & [options]]
   (let [coercer (api-coercion/api->domain-coercer
                  schema
-                 {:matcher (merge {DateTime db-json->date-time}
+                 {:matcher (merge {DateTime time-utils/from-db-json-str}
                                   (:matcher options {}))})]
     (-> what
         (api-coercion/transform-keys api/api->keyword-key)
@@ -68,7 +59,7 @@
 (defn map->db [what schema & [options]]
   (let [coercer (api-coercion/domain->api-coercer
                  schema
-                 {:matcher (merge {DateTime date-time->db-json}
+                 {:matcher (merge {DateTime time-utils/to-db-json-str}
                                   (:matcher options {}))})]
     (-> what
         (coercer)
